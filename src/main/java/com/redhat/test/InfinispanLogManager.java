@@ -1,17 +1,18 @@
 package com.redhat.test;
 
-import javafx.beans.binding.ObjectExpression;
 import org.hibernate.search.query.dsl.QueryBuilder;
 import org.infinispan.Cache;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.query.CacheQuery;
 import org.infinispan.query.SearchManager;
+import org.infinispan.stream.CacheCollectors;
 
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class InfinispanLogManager {
+
 
     protected DefaultCacheManager cacheManager = null;
 
@@ -33,6 +34,7 @@ public class InfinispanLogManager {
 
     public void init() throws Exception {
         cacheManager = new DefaultCacheManager(InfinispanLogManager.class.getResourceAsStream("/infinispan-test-config.xml"));
+
         eventsCache = cacheManager.getCache("log_events");
         tagsPerChannelCache = cacheManager.getCache("tags_per_channel");
     }
@@ -80,7 +82,7 @@ public class InfinispanLogManager {
     }
 
     public long getEventCount() {
-        return getEventsCache().keySet().size();
+        return getEventsCache().getAdvancedCache().getStats().getTotalNumberOfEntries();
     }
 
     public List<Log> findLastLogs(String channel, String text, long fromId, int maxLogs) {
@@ -104,7 +106,6 @@ public class InfinispanLogManager {
 
         // get the search manager from the cache:
         SearchManager searchManager = org.infinispan.query.Search.getSearchManager(getEventsCache());
-
 
         QueryBuilder queryBuilder = searchManager.buildQueryBuilderForClass(Log.class).get();
 
@@ -243,9 +244,10 @@ public class InfinispanLogManager {
     }
 
     public Set<String> getChannelIds() {
-        return getTagsPerChannelCache().keySet().stream().collect(
-                Collectors.toSet()
-        );
+//        return getTagsPerChannelCache().keySet().stream().collect(
+//                Collectors.toSet()
+//        );
+        return getTagsPerChannelCache().keySet();
     }
 
     public Set<String> getAllTags() {
@@ -253,7 +255,9 @@ public class InfinispanLogManager {
                 getTagsPerChannelCache().entrySet().stream().flatMap(
                         e -> e.getValue().stream()
                 ).collect(
-                        Collectors.toSet()
+                        CacheCollectors.serializableCollector(
+                                () -> Collectors.toSet()
+                        )
                 );
     }
 }

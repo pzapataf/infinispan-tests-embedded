@@ -11,7 +11,7 @@ public class Log implements Serializable {
     /**
      * Enumeration for log severity
      */
-    public static enum Severity {
+    public enum Severity {
         DEBUG(1),
         INFO(2),
         ERROR(3),
